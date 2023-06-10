@@ -20,9 +20,6 @@ Extracts important banners of the website:
 
 - <b>Windows 10</b>
 
-<h2>Program walk-through:</h2>
-
-
 <!--
  ```diff
 - text in red
