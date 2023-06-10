@@ -1,0 +1,84 @@
+# for banner grabber we will be using requests module and make GET requests to the server and then print the response
+
+import sys  # as we are using command line (CMD)
+import requests  # this module is for requests
+import socket  # to get the hostname
+import json  # to get response in json format
+import nmap as nm  # for port scanning
+
+# As we provide Command line argument on cmd containing the address of the site we want to grab the banner for it so
+# this is basically a check and display msg
+
+if len(sys.argv) < 2:  # if there in no argument provided in cmd
+    print("Usage: " + sys.argv[0] + "<url>")  # sys.argv[0] is the name of the script like the main point is we write on CMD is ->python
+    # EHD.py "facebook.com"
+    sys.exit(1)
+
+req = requests.get("https://" + sys.argv[1])  # we are making GET request to HTTPS  and then request the domain which we provide as argument(sys.argv[1]) in cmd
+print("\n" + str(req.headers))  # printing the headers
+# Then we have to get the host name and for that we have to use the socket module and in socket module there is built in function of gethostbyname
+gethostby_ = socket.gethostbyname(sys.argv[1])
+print("\nThe Ip Address of " + sys.argv[1] + " is: " + gethostby_ + "\n")  # printing the Ip address of the site
+# now we have to get the location of the ip like latitudes and longitude and for that we make request to the API bcz
+# API(ipinfo.io) proides that kind of service
+req_two = requests.get("https://ipinfo.io/" + gethostby_ + "/json")  # we provide the get request and also give the ip (gethostby_) and
+# we use /json to get response in the json format
+resp_ = json.loads(req_two.text)  # we use the load func to load the response
+# then we print the content below fro the response
+print("Location: " + resp_["loc"])  # ["loc"] is the index which provides the location
+print("Region: " + resp_["region"])
+print("City: " + resp_["city"])
+print("Country: " + resp_["country"])
+print("Organization: " + resp_["org"])
+print("Host name: " + resp_["hostname"])
+#print("Postal: " + resp_["postal"])
+
+target = gethostby_  # target have the ip of the site
+ports = [] # ist
+print(" **** Press 1 to scan ports and Press 2 to scan the range of ports ****")
+q = input("Enter choice : ")
+if q == '1':
+    n=input("Enter number of ports you want to scan : ")
+    for i in range(0, int(n)):
+        p = input("Enter ports : ")
+        ports.append(int(p))
+elif q == '2':
+    s = input("Enter the starting range of ports : ")
+    d = input("Enter the Ending range of ports : ")
+    for i in range(int(s),int(d)+1):
+        ports.append(i)
+print(ports)
+scan_v = nm.PortScanner()
+for port in ports:  # scanning the ports
+    portscan = scan_v.scan(target, str(port))
+    print("Port", port, " is ", portscan['scan'][target]['tcp'][port]['state'],
+          portscan['scan'][target]['tcp'][port]['name'], portscan['scan'][target]['tcp'][port]['version'],
+          portscan['scan'][target]['tcp'][port]['cpe'],
+          portscan['scan'][target]['tcp'][port]['product'], portscan['scan'][target]['tcp'][port]['reason'])
+
+domain = input("Enter Domain: ")
+# read all sub-domains
+file = open("subdomains.txt")
+# read all content
+content = file.read()
+# split by new lines
+subdomains = content.splitlines()
+# a list of discovered sub-domains
+discovered_subdomains = []
+for subdomain in subdomains:
+    # construct the url
+    url = f"http://{subdomain}.{domain}"
+    try:
+        # if this raises an ERROR, that means the subdomain does not exist
+        requests.get(url)
+    except requests.ConnectionError:
+        # if the subdomain does not exist, just pass, print nothing
+        pass
+    else:
+        print("[+] Discovered subdomain:", url)
+        # append the discovered subdomain to our list
+        discovered_subdomains.append(url)
+# save the discovered subdomains into a file
+with open("discovered_subdomains.txt", "w") as f:
+    for subdomain in discovered_subdomains:
+        print(subdomain, file=f)
